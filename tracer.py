@@ -4,7 +4,7 @@ import os
 import platform
 
 from argparse import ArgumentParser
-from subprocess import call, PIPE, STDOUT
+from subprocess import Popen, PIPE, STDOUT
 from time import sleep
 
 ERROR_LOG_FILE = "network_errors.txt"
@@ -23,15 +23,18 @@ class Tracer():
         if self.windows:
             cmd = "ping /n 1 {}".format(self.target)
         args = shlex.split(cmd)
-        return call(args, stdout=PIPE, stderr=STDOUT) == 0
+        p = Popen(args, stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        output, err = p.communicate()
+        return p.returncode == 0, output.decode("utf-8").rstrip(), err.decode("utf-8").rstrip()
 
     def start_monitoring(self):
         while True:
-            if not self.is_network_alive():
+            success, output, error = self.is_network_alive()
+            if not success:
                 print("Network not alive, sleeping")
                 with open(os.path.join(self.output_path, ERROR_LOG_FILE), "a+") as error_file:
-                    log_line = "{} network unreachable.\n".format(
-                        datetime.datetime.now())
+                    log_line = "{} network unreachable due to {} - {}.\n".format(
+                        datetime.datetime.now(), output, error)
                     error_file.write(log_line)
                 sleep(TIMEOUT)
             else:
