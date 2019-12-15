@@ -29,7 +29,7 @@ class Tracer():
         while True:
             if not self.is_network_alive():
                 print("Network not alive, sleeping")
-                with open(os.path.join(self.output_path, ERROR_LOG_FILE), "w+") as error_file:
+                with open(os.path.join(self.output_path, ERROR_LOG_FILE), "a+") as error_file:
                     log_line = "{} network unreachable.\n".format(
                         datetime.datetime.now())
                     error_file.write(log_line)
