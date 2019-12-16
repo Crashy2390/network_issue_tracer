@@ -2,6 +2,7 @@ import datetime
 import shlex
 import os
 import platform
+import psycopg2
 
 from argparse import ArgumentParser
 from subprocess import Popen, PIPE, STDOUT
@@ -17,6 +18,7 @@ class Tracer():
         self.target = target
         self.output_path = output_path
         self.windows = platform.system() == "Windows"
+        self.db = DB()
 
     def is_network_alive(self):
         cmd = "ping -c 1 {}".format(self.target)
@@ -33,13 +35,31 @@ class Tracer():
             if not success:
                 print("Network not alive, sleeping")
                 with open(os.path.join(self.output_path, ERROR_LOG_FILE), "a+") as error_file:
+                    datetime = datetime.datetime.now()
                     log_line = "{} network unreachable due to {} - {}.\n".format(
-                        datetime.datetime.now(), output, error)
+                        datetime, output, error)
                     error_file.write(log_line)
+                    self.db.add_error(datetime, "network unreachable due to {} - {}".format(output, error))
                 sleep(TIMEOUT)
             else:
                 sleep(0.5)
 
+
+class DB():
+
+    def __init__(self):
+        self.conn = psycopg2.connect('dbname=network')
+        self.cur = conn.cursor()
+
+    def add_error(self, datetime, error):
+        query = """
+        INSERT INTO
+            wifi_errors
+        VALUES
+            (%s, %s)
+        """
+        values = (datetime, error)
+        self.cur.execute(query, values)
 
 if __name__ == "__main__":
     parser = ArgumentParser()
