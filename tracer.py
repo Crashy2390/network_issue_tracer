@@ -2,6 +2,7 @@ import datetime
 import shlex
 import os
 import platform
+import psycopg2
 
 from argparse import ArgumentParser
 from subprocess import Popen, PIPE, STDOUT
